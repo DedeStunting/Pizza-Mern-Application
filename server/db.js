@@ -1,19 +1,32 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
-var mongoUrl = 'mongodb+srv://charlesdhayveed:charlesdhayveed123@cluster0.i44hj.mongodb.net/Mern-Pizza'
+const MONGO_URL = process.env.MONGO_URL;
 
-mongoose.connect(mongoUrl, { useNewUrlParser: true, useUnifiedTopology: true, })
+if (!MONGO_URL) {
+  console.warn('Warning: MONGO_URL is not set.');
+}
 
-var db = mongoose.connection
+let cached = global.mongoose;
 
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
+}
 
-db.on('connected', ()=>{
-    console.log("Connected to MongoDB...")
-})
+async function connectDB() {
+  if (!MONGO_URL) {
+    throw new Error('MONGO_URL environment variable is required');
+  }
 
-db.on('error', (err) => {
-    console.log("Error connecting to MongoDB:", err)
-})
+  if (cached.conn) {
+    return cached.conn;
+  }
 
+  if (!cached.promise) {
+    cached.promise = mongoose.connect(MONGO_URL).then((mongooseInstance) => mongooseInstance);
+  }
 
-module.exports = mongoose;
+  cached.conn = await cached.promise;
+  return cached.conn;
+}
+
+module.exports = connectDB;

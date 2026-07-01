@@ -1,48 +1,62 @@
-import { combineReducers } from 'redux'
+import { combineReducers } from 'redux';
+import { createStore, applyMiddleware } from 'redux';
+import { thunk } from 'redux-thunk';
+import { composeWithDevTools } from 'redux-devtools-extension';
+import {
+  addPizzaReducer,
+  getAllPizzasReducer,
+  getPizzaByIdReducer,
+  editPizzaReducer,
+} from './reducers/pizzaReducers';
+import { cartReducer } from './reducers/cartReducers';
+import { registerUserReducer, loginUserReducer, getAllUsersReducer } from './reducers/userReducers';
+import {
+  placeOrderReducer,
+  getUserOrdersReducer,
+  getAllOrdersReducer,
+} from './reducers/orderReducers';
 
-import { createStore, applyMiddleware } from 'redux'
+const persistCartMiddleware = (store) => (next) => (action) => {
+  const result = next(action);
 
-import { thunk } from 'redux-thunk'
+  if (['ADD_TO_CART', 'DELETE_FROM_CART', 'CLEAR_CART'].includes(action.type)) {
+    const { cartItems } = store.getState().cartReducer;
+    localStorage.setItem('cartItems', JSON.stringify(cartItems));
+  }
 
-import { composeWithDevTools } from 'redux-devtools-extension'
-import { addPizzaReducer, getAllPizzasReducer, getPizzaByIdReducer, editPizzaReducer} from './reducers/pizzaReducers'
-import { cartReducer } from './reducers/cartReducers'
-import { registerUserReducer } from './reducers/userReducers'
-import { loginUserReducer, getAllUsersReducer } from './reducers/userReducers'
-import { placeOrderReducer, getUserOrdersReducer, getAllOrdersReducer } from './reducers/orderReducers'
-
+  return result;
+};
 
 const finalReducer = combineReducers({
-    getAllPizzasReducer: getAllPizzasReducer,
-    cartReducer: cartReducer,
-    registerUserReducer: registerUserReducer,
-    loginUserReducer: loginUserReducer,
-    placeOrderReducer: placeOrderReducer,
-    getUserOrdersReducer : getUserOrdersReducer,
-    addPizzaReducer : addPizzaReducer,
-    getPizzaByIdReducer : getPizzaByIdReducer,
-    editPizzaReducer : editPizzaReducer,
-    getAllOrdersReducer : getAllOrdersReducer,
-    getAllUsersReducer : getAllUsersReducer
+  getAllPizzasReducer,
+  cartReducer,
+  registerUserReducer,
+  loginUserReducer,
+  placeOrderReducer,
+  getUserOrdersReducer,
+  addPizzaReducer,
+  getPizzaByIdReducer,
+  editPizzaReducer,
+  getAllOrdersReducer,
+  getAllUsersReducer,
+});
 
-
-})
-
-const cartItems = localStorage.getItem('cartItems') ? JSON.parse(localStorage.getItem('cartItems')) : []
-const currentUser = localStorage.getItem('currentUser') ? JSON.parse(localStorage.getItem('currentUser')) : null
+const cartItems = localStorage.getItem('cartItems')
+  ? JSON.parse(localStorage.getItem('cartItems'))
+  : [];
+const currentUser = localStorage.getItem('currentUser')
+  ? JSON.parse(localStorage.getItem('currentUser'))
+  : null;
 
 const initialState = {
-    cartReducer: {
-        cartItems: cartItems
-    },
-    loginUserReducer: {
-        currentUser: currentUser
-    }
-}
+  cartReducer: { cartItems },
+  loginUserReducer: { currentUser },
+};
 
-const composeEnhancers = composeWithDevTools({})
-
-const store = createStore(finalReducer, initialState, composeEnhancers(applyMiddleware(thunk)))
-
+const store = createStore(
+  finalReducer,
+  initialState,
+  composeWithDevTools(applyMiddleware(thunk, persistCartMiddleware))
+);
 
 export default store;

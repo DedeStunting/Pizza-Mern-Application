@@ -3,123 +3,60 @@ import { useDispatch, useSelector } from 'react-redux';
 import { placeOrder } from '../actions/orderActions';
 import StripeCheckout from 'react-stripe-checkout';
 import { loadStripe } from '@stripe/stripe-js';
-import Error from '../components/Error';
-import Loading from '../components/Loading';
-import Success from '../components/Success';
+import Error from './Error';
+import Loading from './Loading';
+import Success from './Success';
+
+const stripePublishableKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
 
 export default function Checkout({ subtotal }) {
+  const orderstate = useSelector((state) => state.placeOrderReducer);
+  const { loading, error, success } = orderstate;
+  const dispatch = useDispatch();
 
-    const orderstate = useSelector((state)=> state.placeOrderReducer)
-    const { loading, error, success } = orderstate;
-    const dispatch = useDispatch();
+  const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
 
-    // Load Stripe.js instance
-    const stripePromise = loadStripe('pk_test_51QTFjfG8m9Jrxe2ghCnvoKDxwQUYBjG4DYklRFDDJbKQCSwfLZKwcXSjTnwIMYtZGrWlJJb9PFGfPL1LUUXYfc4o00PeZpF8bM');
+  async function tokenHandler(token) {
+    const response = await dispatch(placeOrder(token, subtotal));
 
-    // Handle token and payment processing
-    async function tokenHandler(token) {
-        console.log('Token:', token);
+    if (response?.requiresAction && stripePromise) {
+      const stripe = await stripePromise;
+      const result = await stripe.confirmCardPayment(response.paymentIntentClientSecret);
 
-        // Call the placeOrder action
-        const response = await dispatch(placeOrder(token, subtotal));
-
-        // Handle the server response for additional actions
-        if (response.requiresAction) {
-            const stripe = await stripePromise;
-            const result = await stripe.confirmCardPayment(response.paymentIntentClientSecret);
-
-            if (result.error) {
-                console.error('Payment failed:', result.error);
-                alert('Payment failed. Please try again.');
-            } else if (result.paymentIntent.status === 'succeeded') {
-                console.log('Payment succeeded!');
-                alert('Payment successful!');
-            }
-        } else if (response.success) {
-            console.log('Payment succeeded!');
-            alert('Payment successful!');
-        } else {
-            console.error('Payment failed:', response.error);
-            alert('Payment failed. Please try again.');
-        }
+      if (result.error) {
+        alert('Payment failed. Please try again.');
+      } else if (result.paymentIntent?.status === 'succeeded') {
+        alert('Payment successful!');
+      }
+    } else if (response?.success) {
+      alert('Payment successful!');
+    } else if (response?.error) {
+      alert(response.error);
     }
+  }
 
-    return (
-        <div>
+  if (!stripePublishableKey) {
+    return <Error error="Stripe is not configured. Add REACT_APP_STRIPE_PUBLISHABLE_KEY." />;
+  }
 
-            {loading && (<Loading />)}
-            {error && (<Error error='Something went wrong'/>)}
-            {success && (<Success success='Your order placed successfully'/>)}
+  return (
+    <div>
+      {loading && <Loading />}
+      {error && <Error error={typeof error === 'string' ? error : 'Something went wrong'} />}
+      {success && <Success success="Your order was placed successfully." />}
 
-            <StripeCheckout
-                amount={subtotal * 100}
-                shippingAddress
-                token={tokenHandler}
-                stripeKey="pk_test_51QTFjfG8m9Jrxe2ghCnvoKDxwQUYBjG4DYklRFDDJbKQCSwfLZKwcXSjTnwIMYtZGrWlJJb9PFGfPL1LUUXYfc4o00PeZpF8bM"
-                currency="NGN"
-            >
-                <button className="btn">PAY NOW</button>
-            </StripeCheckout>
-        </div>
-    );
+      <StripeCheckout
+        amount={subtotal * 100}
+        shippingAddress
+        billingAddress
+        token={tokenHandler}
+        stripeKey={stripePublishableKey}
+        currency="NGN"
+      >
+        <button className="btn" type="button">
+          PAY NOW
+        </button>
+      </StripeCheckout>
+    </div>
+  );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// import React from 'react'
-// import { useDispatch } from 'react-redux';
-// import { placeOrder } from '../actions/orderActions';
-// import StripeCheckout from 'react-stripe-checkout'
-
-// export default function Checkout({subtotal}) {
-
-//     const dispatch = useDispatch()    
-//     function tokenHandler(token) 
-//     {
-//         console.log(token);
-//         dispatch(placeOrder(token, subtotal))
-//     }
-  
-//     return (
-//     <div>
-      
-//       <StripeCheckout
-//       amount={subtotal*100}
-//       shippingAddress
-//       token={tokenHandler}
-//       stripeKey='pk_test_51QTFjfG8m9Jrxe2ghCnvoKDxwQUYBjG4DYklRFDDJbKQCSwfLZKwcXSjTnwIMYtZGrWlJJb9PFGfPL1LUUXYfc4o00PeZpF8bM'
-//       currency='NGN'
-//       >
-
-//         <button className='btn'>PAY NOW</button>
-
-
-//       </StripeCheckout>
-
-//     </div>
-//   )
-// }

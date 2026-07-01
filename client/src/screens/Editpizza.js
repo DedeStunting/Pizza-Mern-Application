@@ -23,7 +23,7 @@ export default function Editpizza() {
   const { pizza, error, loading } = getpizzabyidstate;
 
   const editpizzastate = useSelector((state) => state.editPizzaReducer);
-  const { editloading, editerror, editsuccess} = editpizzastate;
+  const { success: editsuccess } = editpizzastate;
 
   useEffect(() => {
     if (pizzaid) {
