@@ -209,4 +209,4 @@ ISC
 
 ## Author
 
-Your Name — [Portfolio](https://your-portfolio.com) · [GitHub](https://github.com/your-username)
+David Chiedu —  [GitHub](https://github.com/dedestunting)
